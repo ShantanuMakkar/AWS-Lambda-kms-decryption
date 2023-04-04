@@ -9,8 +9,16 @@ from datetime import datetime
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
+
 global dt
+global key
+global File_PREFIX_DATE
+global FILE_NAME
+
 dt = datetime.now()
+File_PREFIX_DATE = dt.strftime('%d%m%Y')
+FILE_SUFFIX = os.getenv("file_suffix")
+FILE_PREFIX = os.getenv("file_prefix")
 
 s3 = boto3.client("s3")
 
@@ -21,28 +29,32 @@ TEMP_DIR = os.getenv("TEMP_DIR")
 
 class c:
     
-    def a(self,event,context):
+    #def a(self,event,context):
         
-        print(" ------------------------------------- ")
-        print(" ------------------------------------- ")
-        print("Starting the File Decryption Process ..")
-        global key
-        print("Extracting the uploaded base64 encoded file name from the s3 Bucket ..")
+    #    print(" ------------------------------------- ")
+    #    print(" ------------------------------------- ")
+    #    print("Starting the File Decryption Process ..")
+    #    global key
+    #    print("Extracting the uploaded base64 encoded file name from the s3 Bucket ..")
         
-        bucket = event['Records'][0]['s3']['bucket']['name']
-        key = urllib.parse.unquote_plus(event['Records'][0]['s3']['object']['key'], encoding='utf-8')
-        response = s3.get_object(Bucket=bucket, Key=key)
+    #    bucket = event['Records'][0]['s3']['bucket']['name']
+    #    key = urllib.parse.unquote_plus(event['Records'][0]['s3']['object']['key'], encoding='utf-8')
+    #    response = s3.get_object(Bucket=bucket, Key=key)
         
-        print("The base64 encoded File name is: " + key)
-        print("The base64 encoded File content type is: " + response['ContentType'])
+    #    print("The base64 encoded File name is: " + key)
+    #    print("The base64 encoded File content type is: " + response['ContentType'])
         
-        return response['ContentType']
-        return key
+    #    return response['ContentType']
+    #    return key
     
 
     def b(self,context):
         
+        
+        key = FILE_PREFIX+File_PREFIX_DATE+FILE_SUFFIX
         print(" ------------------------------------- ")
+        print("Starting the File Decryption Process ..")
+        print("The base64 encoded File name is: " + key)
         
         s3_file_path = key
         local_temp_file = f"{TEMP_DIR}/{key}"
@@ -88,16 +100,9 @@ class c:
         decrypted = boto3.client('kms', region_name='eu-central-1').decrypt(CiphertextBlob=b64decode(encrypted_file))['Plaintext']
         
         print("Decrypted base64 data is : ",decrypted)
-        
         print(" ------------------------------------- ")
-        
         print("Decryption process is complete, now uploading the decrypted zip file to the target bucket ..")
         
-            
-        #with open(encry_file_fname,'wb') as file_decrypted:
-        #    file_decrypted.write(decrypted)
-        #    file_decrypted.close()
-        #    s3.upload_file(encry_file_fname, TARGET_BUCKET, fname)
         
         try:
             with open(encry_file_fname,'wb') as file_decrypted:
@@ -113,18 +118,19 @@ class c:
             print("[ERROR]", dt, "The decrypted file is NOT uploaded to the target bucket ..")
             
         
-        #print("The decrypted file is uploaded to the target bucket ..")
-        
         print(" ------------------------------------- ")
         print(" ------------------------------------- ")
         
-
-        return {"statusCode": 200}  
         
     
 def lambda_handler(event, context):
     
     x = c()
-    x.a(event,context)
+    #x.a(event,context)
     x.b(event)
+    
+    return {
+        'statusCode': 200,
+        'body': json.dumps('KMS Decryption Function is successful !')
+    }
     
